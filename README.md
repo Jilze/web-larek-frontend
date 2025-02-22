@@ -228,7 +228,7 @@
 - **Интерфейс `IApplicationState`**
 
 ```tsx
- export interface IApplicationState {
+interface IApplicationState {
 	productCatalog: IProduct[]; // Список товаров из каталога
 	selectedPreview: string; // ID или название товара в превью
 	cartItems: Product[]; // Товары, добавленные в корзину
@@ -238,7 +238,6 @@
 ```
 
 - **Поля**
--
 
 `productCatalog` - Хранит список товаров, полученных с сервера. Используется для отображения каталога продуктов.
 `selectedPreview` - Содержит информацию о товаре, который в данный момент отображается в превью (например, ID или
@@ -265,41 +264,7 @@
   `areContactsValid` - Выполняет проверку валидности контактной информации клиента. Возвращает true, если данные
   соответствуют требованиям.
 
-#### 2. Класс `Product`
-
-- **Описание**
-
-  Служит моделью для хранения данных о товаре. Он наследует от базового абстрактного класса `Model<T>` и реализует
-  интерфейс `IProduct`.
-
-- **Интерфейс `IProduct`**
-
-```tsx
-export interface IProduct {
-	id: string; // Уникальный идентификатор товара
-	title: string; // Название товара
-	description: string; // Описание товара
-	category: string; // Категория товара
-	image: string; // URL изображения товара
-	price: number | null; // Цена товара (может быть null, если цена не указана)
-}
-```
-
-- **Конструктор**
-
-  Конструктор класса `Product` принимает объект данных типа `IProduct` и инициализирует его свойства. Благодаря
-  наследованию от `Model<T>`, класс получает доступ к общей функциональности, такой как управление состоянием и события.
-
-- **Методы**
-
-  `updatePrice` - Обновляет цену товара на указанное значение.
-  `getPrice` - Возвращает текущую цену товара.
-  `setDescription` - Обновляет описание товара.
-  `setCategory` - Обновляет категорию товара.
-  `setImage` - Обновляет URL изображения товара.
-  `validate` - Выполняет проверку корректности данных товара.
-
-#### 3. Класс `ProductsApi`
+#### 2. Класс `ProductsApi`
 
 - **Описание**
   Класс `ProductsApi` представляет собой специализированный инструмент для взаимодействия с сервером в контексте
@@ -656,18 +621,14 @@ interface IBasket {
 оформления заказа:
 
 ```tsx
-export interface IOrderDetails {
-	success: boolean;
-	message: string;
-	data: {
-		paymentMethod?: string;      // Выбранный метод оплаты.
-		deliveryAddress?: string;    // Адрес доставки.
-		contactNumber?: string;      // Номер телефона для связи.
-		emailAddress?: string;       // Электронная почта.
-		orderTotal?: string | number; // Общая сумма заказа.
-		items: IOrder[]; // Массив товаров в заказе.
-		status?: string; // Статус заказа.
-	};
+interface IOrderDetails {
+	paymentMethod?: string;      // Выбранный метод оплаты.
+	deliveryAddress?: string;    // Адрес доставки.
+	contactNumber?: string;      // Номер телефона для связи.
+	emailAddress?: string;       // Электронная почта.
+	orderTotal?: string | number; // Общая сумма заказа.
+	items: IOrder[]; // Массив товаров в заказе.
+	status?: string; // Статус заказа.
 }
 ```
 
