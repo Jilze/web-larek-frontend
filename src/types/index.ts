@@ -7,11 +7,6 @@ export interface IProduct {
 	price: number | null;
 }
 
-export interface IBasket {
-	cartItems: string[];
-	totalAmount: number;
-}
-
 export interface IOrder {
 	paymentMethod: PaymentMethod;
 	emailAddress: string;
