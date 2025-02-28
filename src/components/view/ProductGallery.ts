@@ -31,14 +31,14 @@ export class ProductGallery extends UIComponent<IProductGallery> {
 	};
 
 	set counter(value: number) {
-		const displayValue = Math.max(0, value); // Убедимся, что значение не отрицательное
+		const displayValue = Math.max(0, value);
 		this.setText(this._counter, String(displayValue));
 	}
 
 	set items(elements: HTMLElement[]) {
-		this._items.innerHTML = ''; // Очищаем текущие элементы
+		this._items.innerHTML = '';
 		if (elements.length > 0) {
-			this._items.append(...elements); // Добавляем новые элементы
+			this._items.append(...elements);
 		}
 	}
 

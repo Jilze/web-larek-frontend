@@ -1,6 +1,6 @@
-import { FormDataHandler } from './FormDataHandler';
+import { FormDataHandler } from '../base/FormDataHandler';
 import { IOrderDetails } from '../../types';
-import { IEvents } from './events';
+import { IEvents } from '../base/events';
 
 export class ContactInformation extends FormDataHandler<IOrderDetails> {
 	constructor(element: HTMLFormElement, eventHandlers: IEvents) {

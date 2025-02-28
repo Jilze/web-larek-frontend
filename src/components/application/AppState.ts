@@ -6,15 +6,14 @@ import {
 	OrderFormErrors,
 } from '../../types';
 import { DataNotifier } from '../base/DataNotifier';
-import { ProductItem } from '../base/ProductItem';
 
 export class AppState extends DataNotifier<IAppState> {
-	productCatalog: ProductItem[] = [];
+	productCatalog: IProduct[] = [];
 	selectedPreview: string = '';
-	cartItems: ProductItem[] = [];
+	cartItems: IProduct[] = [];
 	currentOrder: IOrder = {
 		address: '',
-		payment: '',
+		payment: 'card',
 		email: '',
 		total: 0,
 		phone: '',
@@ -27,35 +26,46 @@ export class AppState extends DataNotifier<IAppState> {
 		this.currentOrder.items = [];
 	}
 
-	addItemToOrder(item: ProductItem) {
-		if (item && item.id && item.price !== null)
+	addItemToOrder(item: IProduct) {
+		if (item && item.id && item.price !== null) {
 			this.currentOrder.items.push(item.id);
+			this.currentOrder.total = this.calculateTotal();
+		}
 	}
 
-	removeItemFromOrder(item: ProductItem) {
+	removeItemFromOrder(item: IProduct) {
 		this.currentOrder.items = this.currentOrder.items.filter(
 			(id) => id !== item.id
 		);
+		this.currentOrder.total = this.calculateTotal();
 	}
 
 	updateCatalog(items: IProduct[]) {
-		this.productCatalog = items.map(
-			(item) => new ProductItem(item, this.events)
-		);
+		this.productCatalog = items;
 		this.emitEvent('items:changed', { catalog: this.productCatalog });
 	}
 
-	updatePreview(item: ProductItem) {
+	updatePreview(item: IProduct) {
 		this.selectedPreview = item.id;
 		this.emitEvent('preview:changed', item);
 	}
 
-	addItemToCart(item: ProductItem) {
-		this.cartItems.push(item);
+	isItemInCart(item: IProduct): boolean {
+		return this.cartItems.some((cartItem) => cartItem.id === item.id);
 	}
 
-	removeItemFromCart(item: ProductItem) {
-		this.cartItems = this.cartItems.filter((cartItem) => cartItem !== item);
+	addItemToCart(item: IProduct) {
+		if (!this.cartItems.some((cartItem) => cartItem.id === item.id)) {
+			this.cartItems.push(item);
+			this.emitEvent('cart:changed', this.cartItems);
+		}
+	}
+
+	removeItemFromCart(item: IProduct) {
+		this.cartItems = this.cartItems.filter(
+			(cartItem) => cartItem.id !== item.id
+		);
+		this.emitEvent('cart:changed', this.cartItems);
 	}
 
 	get isBasketEmpty() {
@@ -75,14 +85,14 @@ export class AppState extends DataNotifier<IAppState> {
 
 	updateOrderField(field: keyof IOrderDetails, value: string) {
 		this.currentOrder[field] = value;
-		if (this.validateOrder())
-			this.events.emit('order:ready', this.currentOrder);
+		this.validateOrder();
+		this.events.emit('order:ready', this.currentOrder);
 	}
 
 	updateContactsField(field: keyof IOrderDetails, value: string) {
 		this.currentOrder[field] = value;
-		if (this.validateContacts())
-			this.events.emit('order:ready', this.currentOrder);
+		this.validateContacts();
+		this.events.emit('order:ready', this.currentOrder);
 	}
 
 	validateOrder(): boolean {
@@ -92,7 +102,7 @@ export class AppState extends DataNotifier<IAppState> {
 		if (!this.currentOrder.payment)
 			errors.payment = 'Необходимо выбрать способ оплаты.';
 		this.updateErrors(errors);
-		return !Object.keys(errors).length;
+		return Object.keys(errors).length === 0;
 	}
 
 	validateContacts(): boolean {
@@ -100,7 +110,7 @@ export class AppState extends DataNotifier<IAppState> {
 		if (!this.currentOrder.email) errors.email = 'Необходимо указать email.';
 		if (!this.currentOrder.phone) errors.phone = 'Необходимо указать телефон.';
 		this.updateErrors(errors);
-		return !Object.keys(errors).length;
+		return Object.keys(errors).length === 0;
 	}
 
 	private updateErrors(errors: OrderFormErrors) {

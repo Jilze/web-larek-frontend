@@ -25,11 +25,7 @@ export class OrderConfirmed extends UIComponent<IOrderConfirmed> {
 	}
 
 	private setupCloseButton(actions: IActionHandler): void {
-		if (actions?.handleSuccess) {
-			this._closeButton.addEventListener('click', actions.handleSuccess);
-		} else {
-			console.warn('Обработчик handleSuccess не определен.');
-		}
+		this._closeButton.addEventListener('click', actions.handleSuccess);
 	}
 
 	set totalAmount(value: string) {

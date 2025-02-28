@@ -25,7 +25,6 @@ export class Order extends FormDataHandler<IOrderDetails> {
 	}
 
 	set paymentMethod(name: string) {
-		// Убрана аннотация возвращаемого типа
 		this._paymentButtons.forEach((button) => {
 			const isActive = button.name === name;
 			button.classList.toggle('button_alt-active', isActive);
@@ -33,7 +32,6 @@ export class Order extends FormDataHandler<IOrderDetails> {
 	}
 
 	set deliveryAddress(value: string) {
-		// Убрана аннотация возвращаемого типа
 		const addressInput = this.element.elements.namedItem(
 			'address'
 		) as HTMLInputElement;

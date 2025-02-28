@@ -9,12 +9,11 @@ import { ProductCard } from './components/view/ProductCard';
 import { Modal } from './components/view/Modal';
 import { Basket } from './components/view/Basket';
 import { Order } from './components/view/Order';
-import { IOrderDetails } from './types';
-import { OrderConfirmed } from './components/view/OrderConfirmed';
-import { ProductItem } from './components/base/ProductItem';
-import { ContactInformation } from './components/base/ContactInformation';
+import { IOrderDetails, IProduct } from './types';
+import { ContactInformation } from './components/application/ContactInformation';
 import { ProductDetails } from './components/view/ProductDetails';
 import { BasketItem } from './components/view/BasketItem';
+import { OrderConfirmed } from './components/view/OrderConfirmed';
 
 const TEMPLATES = {
 	success: ensureElement<HTMLTemplateElement>('#success'),
@@ -44,34 +43,39 @@ const contactInformation = new ContactInformation(
 
 //Обработчики карточек товаров
 
-function emitCardSelection(item: ProductItem) {
+function emitCardSelection(item: IProduct) {
 	eventEmitter.emit('card:select', item);
 }
 
-function generateProductCard(item: ProductItem) {
+function generateProductCard(item: IProduct) {
 	const card = new ProductCard(cloneTemplate(TEMPLATES.cardCatalog), {
 		onClick: () => emitCardSelection(item),
 	});
 	return card.render({
 		name: item.title,
 		category: item.category,
-		imageUrl: `${productOrderApi.cdn}${item.image}`,
+		imageUrl: item.image,
 		cost: item.price,
 	});
 }
 
-function generateProductPreview(item: ProductItem) {
-	return new ProductDetails(cloneTemplate(TEMPLATES.cardPreview), {
-		onClick: () => eventEmitter.emit('card:add', item),
+function generateProductPreview(item: IProduct) {
+	const preview = new ProductDetails(cloneTemplate(TEMPLATES.cardPreview), {
+		onClick:
+			item.price !== null
+				? () => eventEmitter.emit('card:add', item)
+				: undefined,
 	});
+	preview.buttonDisabled = appState.isItemInCart(item) || item.price === null;
+	return preview;
 }
 
-function renderModal(productPreview: ProductDetails, item: ProductItem) {
+function renderModal(productPreview: ProductDetails, item: IProduct) {
 	modal.render({
 		modalContent: productPreview.render({
 			name: item.title,
 			category: item.category,
-			imageUrl: `${productOrderApi.cdn}${item.image}`,
+			imageUrl: item.image,
 			cost: item.price,
 			text: item.description,
 		}),
@@ -120,25 +124,31 @@ function processValidationErrors(validationErrors: Partial<IOrderDetails>) {
 }
 
 // Карточки товаров
-eventEmitter.on('card:select', (item: ProductItem) => {
+eventEmitter.on('card:select', (item: IProduct) => {
 	appState.updatePreview(item);
 });
 
-eventEmitter.on('preview:changed', (item: ProductItem) => {
+eventEmitter.on('preview:changed', (item: IProduct) => {
 	const productPreview = generateProductPreview(item);
 	renderModal(productPreview, item);
 });
 
-eventEmitter.on('card:add', (item: ProductItem) => {
+eventEmitter.on('card:add', (item: IProduct) => {
 	appState.addItemToOrder(item);
 	appState.addItemToCart(item);
 	productGallery.counter = appState.basketItems.length;
 	modal.closeModal();
 });
 
+// Обработчик удаления товара
+eventEmitter.on('card:remove', (item: IProduct) => {
+	appState.removeItemFromCart(item);
+	productGallery.counter = appState.basketItems.length;
+});
+
 // Корзина
 eventEmitter.on('basket:open', refreshBasketState);
-eventEmitter.on('card:remove', (item: ProductItem) => {
+eventEmitter.on('card:remove', (item: IProduct) => {
 	appState.removeItemFromCart(item);
 	appState.removeItemFromOrder(item);
 	productGallery.counter = appState.basketItems.length;
@@ -168,23 +178,28 @@ eventEmitter.on('payment:change', (button: HTMLButtonElement) => {
 
 // Оформление заказа
 eventEmitter.on('order:open', () => {
+	order.deliveryAddress = appState.currentOrder.address;
+	order.paymentMethod = appState.currentOrder.payment;
+	appState.validateOrder();
 	modal.render({
 		modalContent: order.render({
-			address: '',
-			payment: 'card',
-			isValid: false,
+			address: appState.currentOrder.address,
+			payment: appState.currentOrder.payment,
+			isValid: Object.keys(appState.orderFormErrors).length === 0, // Актуализируем статус кнопки
 			validationErrors: [],
 		}),
 	});
 });
 
 eventEmitter.on('order:submit', () => {
-	appState.currentOrder.total = appState.calculateTotal();
+	contactInformation.contactNumber = appState.currentOrder.phone;
+	contactInformation.emailAddress = appState.currentOrder.email;
+	const isValid = appState.validateContacts();
 	modal.render({
 		modalContent: contactInformation.render({
-			email: '',
-			phone: '',
-			isValid: false,
+			email: appState.currentOrder.email,
+			phone: appState.currentOrder.phone,
+			isValid: isValid,
 			validationErrors: [],
 		}),
 	});
@@ -192,25 +207,41 @@ eventEmitter.on('order:submit', () => {
 
 eventEmitter.on('contacts:submit', () => {
 	productOrderApi.createOrder(appState.currentOrder).then(() => {
+		clearBasket();
 		modal.render({
 			modalContent: new OrderConfirmed(cloneTemplate(TEMPLATES.success), {
 				handleSuccess: () => {
 					clearBasket();
 					modal.closeModal();
 				},
-			}).render({ totalAmount: appState.calculateTotal() }),
+			}).render({ totalAmount: appState.currentOrder.total }),
 		});
 	});
 });
 
+eventEmitter.on('cart:changed', () => {
+	if (appState.selectedPreview) {
+		const currentItem = appState.productCatalog.find(
+			(item) => item.id === appState.selectedPreview
+		);
+		if (currentItem) {
+			const productPreview = generateProductPreview(currentItem);
+			productPreview.buttonDisabled = appState.isItemInCart(currentItem);
+			renderModal(productPreview, currentItem);
+		}
+	}
+	refreshBasketState();
+});
+
 // Блокировка прокрутки
+
 eventEmitter.on('modal:open', () => (productGallery.togglePageLock = true));
 eventEmitter.on('modal:close', () => (productGallery.togglePageLock = false));
-
 // Загрузка данных
 productOrderApi.getProducts().then(appState.updateCatalog.bind(appState));
 
 // Обновление каталога
+
 eventEmitter.on('items:changed', () => {
 	productGallery.items = appState.productCatalog.map(generateProductCard);
 });

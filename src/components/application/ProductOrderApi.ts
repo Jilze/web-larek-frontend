@@ -9,10 +9,13 @@ export class ProductOrderApi extends Api {
 		this.cdn = cdn;
 	}
 
-	getProducts() {
-		return this.get('/product').then((data: ApiListResponse<IProduct>) => {
-			return data.items.map((item) => ({ ...item }));
-		});
+	getProducts(): Promise<IProduct[]> {
+		return this.get('/product').then((data: ApiListResponse<IProduct>) =>
+			data.items.map((item) => ({
+				...item,
+				image: this.cdn + item.image,
+			}))
+		);
 	}
 
 	createOrder(order: IOrder): Promise<IOrderResult> {

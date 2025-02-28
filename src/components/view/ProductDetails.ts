@@ -8,7 +8,7 @@ interface IProductDetails {
 
 export class ProductDetails extends ProductCard<IProductDetails> {
 	protected _text: HTMLElement;
-	protected _button: HTMLElement;
+	protected _button: HTMLButtonElement;
 
 	constructor(element: HTMLElement, eventHandlers?: CardInteractionHandlers) {
 		super(element, eventHandlers);
@@ -22,5 +22,13 @@ export class ProductDetails extends ProductCard<IProductDetails> {
 
 	set text(value: string) {
 		this.setText(this._text, value);
+	}
+
+	set buttonDisabled(value: boolean) {
+		if (this._button) {
+			this._button.disabled = value || this.cost === null;
+			this._button.textContent =
+				value || this.cost === null ? 'Товар недоступен' : 'В корзину';
+		}
 	}
 }
